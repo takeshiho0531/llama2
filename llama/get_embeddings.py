@@ -1,16 +1,44 @@
 import torch  # type: ignore
 from model import ModelArgs, ParallelEmbedding  # type: ignore
 from tokenizer import Tokenizer  # type: ignore
+from fairscale.nn.model_parallel.initialize import (
+    get_model_parallel_rank,
+    initialize_model_parallel,
+    model_parallel_is_initialized,
+)
+import os
+import sys
+import json
+
+max_seq_len=128
+max_batch_size=4
 
 # モデルの引数を設定
-# model_args = ModelArgs(dim=4096, n_layers=32, n_heads=32, vocab_size=10000)
-params=ModelArgs(dim=4096, n_layers=32, n_heads=32, vocab_size=10000)
+with open("/app/weight/llama-2-7b/params.json", "r") as f:
+    params = json.loads(f.read())
+params=ModelArgs(max_seq_len=max_seq_len, max_batch_size=max_batch_size, **params,)
 vocab_size = params.vocab_size
 tok_embeddings = ParallelEmbedding(params.vocab_size, params.dim, init_method=lambda x: x)
 
 # モデルの初期化
 # model = Transformer(params)
 # model.load_state_dict(torch.load("path_to_pretrained_model.pth"))  # TODO
+
+if not torch.distributed.is_initialized():
+    torch.distributed.init_process_group("nccl")
+if not model_parallel_is_initialized():
+    # if model_parallel_size is None:
+    model_parallel_size = int(os.environ.get("WORLD_SIZE", 1))
+
+local_rank = int(os.environ.get("LOCAL_RANK", 0))
+torch.cuda.set_device(local_rank)
+
+torch.manual_seed(1)
+
+if local_rank > 0:
+    sys.stdout = open(os.devnull, "w")
+
+
 
 # SentencePieceモデルをロード
 tokenizer = Tokenizer("/app/weight/tokenizer.model")  # TODO
