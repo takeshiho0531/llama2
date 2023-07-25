@@ -89,11 +89,14 @@ prev_pos = 0
 eos_reached = torch.tensor([False] * bsz, device="cuda")
 input_text_mask = tokens != pad_id
 
-print("min_prompt_len, total_len:", min_prompt_len, total_len) #2,66
-for cur_pos in range(min_prompt_len, total_len):
-    h = tok_embeddings(tokens[:, prev_pos:cur_pos])
-    print("type(h):", type(h)) # <class 'torch.Tensor'>
-    print("h:", h)
+# print("min_prompt_len, total_len:", min_prompt_len, total_len) #2,66
+# for cur_pos in range(min_prompt_len, total_len):
+# h = tok_embeddings(tokens[:, prev_pos:cur_pos])
+h = tok_embeddings(tokens)
+print("type(h):", type(h)) # <class 'torch.Tensor'>
+print("h:", h)
+
+
 
 
 
