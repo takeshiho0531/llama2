@@ -1,10 +1,13 @@
 import torch  # type: ignore
-from model import ModelArgs, ParallelEmbedding  # type: ignore
+from model import ModelArgs  # type: ignore
 from tokenizer import Tokenizer  # type: ignore
 from fairscale.nn.model_parallel.initialize import (
     get_model_parallel_rank,
     initialize_model_parallel,
     model_parallel_is_initialized,
+)
+from fairscale.nn.model_parallel.layers import (
+    ParallelEmbedding,
 )
 import os
 import sys
