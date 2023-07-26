@@ -68,6 +68,30 @@ class Transformer(nn.Module):
         #print("embeddings.shape:", embeddings.shape)
         #return output, embeddings
         return embeddings
+    @torch.inference_mode()
+    def embeddings(self, tokens: torch.Tensor, start_pos: int):
+        _bsz, seqlen = tokens.shape
+        h = self.tok_embeddings(tokens)
+        embeddings=h
+        print("embeddings.shape:", embeddings.shape)
+        #self.freqs_cis = self.freqs_cis.to(h.device)
+        #freqs_cis = self.freqs_cis[start_pos : start_pos + seqlen]
+
+        #mask = None
+        #if seqlen > 1:
+            #mask = torch.full(
+                #(1, 1, seqlen, seqlen), float("-inf"), device=tokens.device
+            #)
+            #mask = torch.triu(mask, diagonal=start_pos + 1).type_as(h)
+
+        #for layer in self.layers:
+            # h = layer(h, start_pos, freqs_cis, mask)
+        #h = self.norm(h)
+        #output = self.output(h).float()
+
+        #print("embeddings.shape:", embeddings.shape)
+        #return output, embeddings
+        return embeddings
 
 
 class Llama:
@@ -208,55 +232,14 @@ class Llama:
         embeddings=[]
         for cur_pos in range(min_prompt_len, total_len):
             print("tokens[:, prev_pos:cur_pos]:", tokens[:, prev_pos:cur_pos].shape)
-            logits = self.model.forward(tokens[:, prev_pos:cur_pos], prev_pos
+            logits = self.model.embeddings(tokens[:, prev_pos:cur_pos], prev_pos
                     )
             embeddings.append(logits)
             print("logits.shape:", logits.shape)
-            #if logprobs:
-                #token_logprobs[:, prev_pos + 1 : cur_pos + 1] = -F.cross_entropy(
-                    #input=logits.transpose(1, 2),
-                    #target=tokens[:, prev_pos + 1 : cur_pos + 1],
-                    #reduction="none",
-                    #ignore_index=pad_id,
-                #)
-            #if temperature > 0:
-                #probs = torch.softmax(logits[:, -1] / temperature, dim=-1)
-                #next_token = sample_top_p(probs, top_p)
-            #else:
-                #next_token = torch.argmax(logits[:, -1], dim=-1)
 
-            #next_token = next_token.reshape(-1)
-            # only replace token if prompt has already been generated
-            #next_token = torch.where(
-                #input_text_mask[:, cur_pos], tokens[:, cur_pos], next_token
-            #)
-            #tokens[:, cur_pos] = next_token
-            #eos_reached |= (~input_text_mask[:, cur_pos]) & (
-                #next_token == self.tokenizer.eos_id
-            #)
             prev_pos = cur_pos
             print("prev_pos", prev_pos)
-            #if all(eos_reached):
-                #break
 
-        #if logprobs:
-            #token_logprobs = token_logprobs.tolist()
-        out_tokens, out_logprobs = [], []
-        #for i, toks in enumerate(tokens.tolist()):
-            # cut to max gen len
-            #start = 0 if echo else len(prompt_tokens[i])
-            #toks = toks[start : len(prompt_tokens[i]) + max_gen_len]
-            #probs = None
-            #if logprobs:
-                #probs = token_logprobs[i][start : len(prompt_tokens[i]) + max_gen_len]
-            # cut to eos tok if any
-            #if self.tokenizer.eos_id in toks:
-                #eos_idx = toks.index(self.tokenizer.eos_id)
-                #toks = toks[:eos_idx]
-                #probs = probs[:eos_idx] if logprobs else None
-            #out_tokens.append(toks)
-            #out_logprobs.append(probs)
-        #return (out_tokens, out_logprobs if logprobs else None)
         return embeddings
 
     def text_completion(
