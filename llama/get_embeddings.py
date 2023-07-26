@@ -219,25 +219,25 @@ class Llama:
                     #reduction="none",
                     #ignore_index=pad_id,
                 #)
-            if temperature > 0:
-                probs = torch.softmax(logits[:, -1] / temperature, dim=-1)
-                next_token = sample_top_p(probs, top_p)
-            else:
-                next_token = torch.argmax(logits[:, -1], dim=-1)
+            #if temperature > 0:
+                #probs = torch.softmax(logits[:, -1] / temperature, dim=-1)
+                #next_token = sample_top_p(probs, top_p)
+            #else:
+                #next_token = torch.argmax(logits[:, -1], dim=-1)
 
-            next_token = next_token.reshape(-1)
+            #next_token = next_token.reshape(-1)
             # only replace token if prompt has already been generated
-            next_token = torch.where(
-                input_text_mask[:, cur_pos], tokens[:, cur_pos], next_token
-            )
-            tokens[:, cur_pos] = next_token
-            eos_reached |= (~input_text_mask[:, cur_pos]) & (
-                next_token == self.tokenizer.eos_id
-            )
+            #next_token = torch.where(
+                #input_text_mask[:, cur_pos], tokens[:, cur_pos], next_token
+            #)
+            #tokens[:, cur_pos] = next_token
+            #eos_reached |= (~input_text_mask[:, cur_pos]) & (
+                #next_token == self.tokenizer.eos_id
+            #)
             prev_pos = cur_pos
             print("prev_pos", prev_pos)
-            if all(eos_reached):
-                break
+            #if all(eos_reached):
+                #break
 
         #if logprobs:
             #token_logprobs = token_logprobs.tolist()
