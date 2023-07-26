@@ -174,7 +174,7 @@ class Llama:
 
 
 
-    # @torch.inference_mode()
+    @torch.inference_mode()
     def generate(
         self,
         prompts: List[List[int]],
@@ -207,19 +207,18 @@ class Llama:
         print(min_prompt_len, total_len)
         embeddings=[]
         for cur_pos in range(min_prompt_len, total_len):
-        #for cur_pos in range(7,71):
             print("tokens[:, prev_pos:cur_pos]:", tokens[:, prev_pos:cur_pos].shape)
             logits = self.model.forward(tokens[:, prev_pos:cur_pos], prev_pos
                     )
             embeddings.append(logits)
             print("logits.shape:", logits.shape)
-            if logprobs:
-                token_logprobs[:, prev_pos + 1 : cur_pos + 1] = -F.cross_entropy(
-                    input=logits.transpose(1, 2),
-                    target=tokens[:, prev_pos + 1 : cur_pos + 1],
-                    reduction="none",
-                    ignore_index=pad_id,
-                )
+            #if logprobs:
+                #token_logprobs[:, prev_pos + 1 : cur_pos + 1] = -F.cross_entropy(
+                    #input=logits.transpose(1, 2),
+                    #target=tokens[:, prev_pos + 1 : cur_pos + 1],
+                    #reduction="none",
+                    #ignore_index=pad_id,
+                #)
             if temperature > 0:
                 probs = torch.softmax(logits[:, -1] / temperature, dim=-1)
                 next_token = sample_top_p(probs, top_p)
@@ -240,23 +239,23 @@ class Llama:
             if all(eos_reached):
                 break
 
-        if logprobs:
-            token_logprobs = token_logprobs.tolist()
+        #if logprobs:
+            #token_logprobs = token_logprobs.tolist()
         out_tokens, out_logprobs = [], []
-        for i, toks in enumerate(tokens.tolist()):
+        #for i, toks in enumerate(tokens.tolist()):
             # cut to max gen len
-            start = 0 if echo else len(prompt_tokens[i])
-            toks = toks[start : len(prompt_tokens[i]) + max_gen_len]
-            probs = None
-            if logprobs:
-                probs = token_logprobs[i][start : len(prompt_tokens[i]) + max_gen_len]
+            #start = 0 if echo else len(prompt_tokens[i])
+            #toks = toks[start : len(prompt_tokens[i]) + max_gen_len]
+            #probs = None
+            #if logprobs:
+                #probs = token_logprobs[i][start : len(prompt_tokens[i]) + max_gen_len]
             # cut to eos tok if any
-            if self.tokenizer.eos_id in toks:
-                eos_idx = toks.index(self.tokenizer.eos_id)
-                toks = toks[:eos_idx]
-                probs = probs[:eos_idx] if logprobs else None
-            out_tokens.append(toks)
-            out_logprobs.append(probs)
+            #if self.tokenizer.eos_id in toks:
+                #eos_idx = toks.index(self.tokenizer.eos_id)
+                #toks = toks[:eos_idx]
+                #probs = probs[:eos_idx] if logprobs else None
+            #out_tokens.append(toks)
+            #out_logprobs.append(probs)
         #return (out_tokens, out_logprobs if logprobs else None)
         return embeddings
 
