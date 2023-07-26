@@ -49,6 +49,7 @@ class Transformer(nn.Module):
         _bsz, seqlen = tokens.shape
         h = self.tok_embeddings(tokens)
         embeddings=h
+        print("embeddings.shape:", embeddings.shape)
         #self.freqs_cis = self.freqs_cis.to(h.device)
         #freqs_cis = self.freqs_cis[start_pos : start_pos + seqlen]
 
@@ -151,30 +152,39 @@ class Llama:
         prev_pos = 0
         eos_reached = torch.tensor([False] * bsz, device="cuda")
         input_text_mask = tokens != pad_id
-        embeddings=self.model.forward(tokens, prev_pos)
-        #return embeddings
+        embeddings=[]
+        print(min_prompt_len, total_len)
         for cur_pos in range(min_prompt_len, total_len):
-            logits = self.model.forward(tokens[:, prev_pos:cur_pos], prev_pos)
-            print(logits.shape)
-            next_token = torch.where(input_text_mask[:, cur_pos], tokens[:, cur_pos], next_token)
-            eos_reached |= (~input_text_mask[:, cur_pos]) & (next_token == self.tokenizer.eos_id)
+            print("tokens[], prev_pos",tokens[:,prev_pos:cur_pos].shape, prev_pos)
+            embedding = self.model.forward(tokens[:, prev_pos:cur_pos], prev_pos)
+            embeddings.append(embedding)
             prev_pos = cur_pos
-            if all(eos_reached):
-                break
+            print(embeddings)
+        return embeddings
+        #for cur_pos in range(min_prompt_len, total_len):
+            #logits = self.model.forward(tokens[:, prev_pos:cur_pos], prev_pos)
+            #print(logits.shape)
+            #next_token = torch.where(input_text_mask[:, cur_pos], tokens[:, cur_pos], next_token)
+            #eos_reached |= (~input_text_mask[:, cur_pos]) & (next_token == self.tokenizer.eos_id)
+            #prev_pos = cur_pos
+            #if all(eos_reached):
+                #break
+        #return logits
 
 
 
 
-    @torch.inference_mode()
+    # @torch.inference_mode()
     def generate(
         self,
-        prompt_tokens: List[List[int]],
+        prompts: List[List[int]],
         max_gen_len: int,
         temperature: float = 0.6,
         top_p: float = 0.9,
         logprobs: bool = False,
         echo: bool = False,
     ) -> Tuple[List[List[int]], Optional[List[List[float]]]]:
+        prompt_tokens = [self.tokenizer.encode(x, bos=True, eos=False) for x in prompts]
         params = self.model.params
         bsz = len(prompt_tokens)
         assert bsz <= params.max_batch_size, (bsz, params.max_batch_size)
@@ -194,8 +204,15 @@ class Llama:
         prev_pos = 0
         eos_reached = torch.tensor([False] * bsz, device="cuda")
         input_text_mask = tokens != pad_id
+        print(min_prompt_len, total_len)
+        embeddings=[]
         for cur_pos in range(min_prompt_len, total_len):
-            logits = self.model.forward(tokens[:, prev_pos:cur_pos], prev_pos)
+        #for cur_pos in range(7,71):
+            print("tokens[:, prev_pos:cur_pos]:", tokens[:, prev_pos:cur_pos].shape)
+            logits = self.model.forward(tokens[:, prev_pos:cur_pos], prev_pos
+                    )
+            embeddings.append(logits)
+            print("logits.shape:", logits.shape)
             if logprobs:
                 token_logprobs[:, prev_pos + 1 : cur_pos + 1] = -F.cross_entropy(
                     input=logits.transpose(1, 2),
@@ -219,6 +236,7 @@ class Llama:
                 next_token == self.tokenizer.eos_id
             )
             prev_pos = cur_pos
+            print("prev_pos", prev_pos)
             if all(eos_reached):
                 break
 
@@ -239,7 +257,8 @@ class Llama:
                 probs = probs[:eos_idx] if logprobs else None
             out_tokens.append(toks)
             out_logprobs.append(probs)
-        return (out_tokens, out_logprobs if logprobs else None)
+        #return (out_tokens, out_logprobs if logprobs else None)
+        return embeddings
 
     def text_completion(
         self,
@@ -253,6 +272,7 @@ class Llama:
         if max_gen_len is None:
             max_gen_len = self.model.params.max_seq_len - 1
         prompt_tokens = [self.tokenizer.encode(x, bos=True, eos=False) for x in prompts]
+        print("prompt_tokens:", prompt_tokens)
         generation_tokens, generation_logprobs = self.generate(
             prompt_tokens=prompt_tokens,
             max_gen_len=max_gen_len,
@@ -296,9 +316,17 @@ generator = Llama.build(
 )
 print("build!")
 
-results = generator.get_embeddings(
+#results = generator.get_embeddings(
+        #prompts,
+        #max_gen_len=max_gen_len)
+#prompt_tokens=[tokenizer.encode(x, bos=True, eos=False) for x in prompts]
+results=generator.generate(
         prompts,
-        max_gen_len=max_gen_len)
+        max_gen_len=max_gen_len,
+        temperature=0.6,
+        top_p=0.9)
+
+
 
 
 #results = generator.text_completion(
@@ -307,5 +335,11 @@ results = generator.get_embeddings(
         #temperature=0.6,
         #top_p=0.9,
 #)
+
+#results=generator.get_embeddings(
+        #prompts,
+        #max_gen_len=max_gen_len)
 #print(results)
 print("done!")
+
+
